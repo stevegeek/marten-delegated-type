@@ -53,5 +53,51 @@ describe MartenDelegatedType do
       # Both should be Leafables::Page? (nilable).
       typeof(note.page).should eq typeof(note.page_leafable)
     end
+
+    it "returns nil cleanly when the polymorphic target is unset on a fresh record" do
+      note = Note.new(title: "blank")
+
+      # All short-form accessors return nil; predicates return false.
+      note.page.should be_nil
+      note.section.should be_nil
+      note.picture.should be_nil
+      note.page?.should be_false
+      note.section?.should be_false
+      note.picture?.should be_false
+    end
+
+    it "exposes a pluralized class-level scope for each type (Rails parity)" do
+      page = Leafables::Page.create!(body: "p")
+      section = Leafables::Section.create!(heading: "s")
+      Note.create!(title: "p-note", leafable: page)
+      Note.create!(title: "s-note", leafable: section)
+
+      # Class-level scope: returns only the notes whose polymorphic
+      # target is a Page (delegates to Marten's with_page_leafable).
+      page_notes = Note.pages.to_a
+      page_notes.size.should eq 1
+      page_notes.first.title.should eq "p-note"
+
+      section_notes = Note.sections.to_a
+      section_notes.size.should eq 1
+      section_notes.first.title.should eq "s-note"
+
+      Note.pictures.to_a.should be_empty
+    end
+
+    it "supports the `as:` keyword to override the alias name" do
+      # `AliasNote` is defined in spec/test_project/models/alias_note.cr
+      # with `delegated_type :leafable, types: [Leafables::Page], as: ["page_alt"]`.
+      page = Leafables::Page.create!(body: "via alias")
+      note = AliasNote.create!(title: "alias", leafable: page)
+
+      # The aliased short-name accessor exists...
+      note.page_alt.try(&.id).should eq page.id
+      note.page_alt?.should be_true
+      typeof(note.page_alt?).should eq ::Bool
+
+      # ...and the class-level scope follows the alias name too.
+      AliasNote.page_alts.to_a.size.should eq 1
+    end
   end
 end
