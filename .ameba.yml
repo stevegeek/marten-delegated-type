@@ -5,3 +5,13 @@ Naming/BlockParameterName:
 Lint/NotNil:
   Excluded:
     - spec/**
+
+# Marten test-project fixture models live under `spec/test_project/`
+# and are loaded by `spec_helper`, not run as standalone specs — so the
+# `Lint/SpecFilename` _spec.cr-suffix rule shouldn't apply. The same
+# goes for the standalone fixture programs under `spec/macro_error_fixtures/`,
+# which `macro_errors_spec.cr` invokes via `crystal build --no-codegen`.
+# Following the pattern used in marten-src and marten-turbo, we disable
+# the rule entirely rather than fight ameba's path-glob matcher.
+Lint/SpecFilename:
+  Enabled: false
